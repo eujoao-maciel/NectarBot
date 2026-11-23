@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const { promisify } = require("util");
 const { execFile, execFileSync } = require("child_process");
-const qrcode = require("qrcode-terminal");
+const QRCode = require("qrcode");
 const {
   default: makeWASocket,
   DisconnectReason,
@@ -23,6 +23,51 @@ const SELF_CHAT = process.env.SELF_CHAT !== "false";
 const MAX_INPUT_BYTES = 24 * 1024 * 1024;
 const MAX_GIF_SECONDS = 8;
 const FFMPEG_TIMEOUT_MS = 60000;
+const QR_QUIET_ZONE = 4;
+
+function renderQrInTerminal(value) {
+  const { modules } = QRCode.create(value);
+  const { data, size } = modules;
+  const useAnsi = process.stdout.isTTY && process.env.NO_COLOR == null;
+  const isDark = (x, y) =>
+    x >= 0 && x < size && y >= 0 && y < size && data[y * size + x] === 1;
+  const lines = [];
+
+  if (useAnsi) {
+    const black = "\u001b[40m ";
+    const white = "\u001b[47m ";
+    const blackOverWhite = "\u001b[30;47m▀";
+    const whiteOverBlack = "\u001b[37;40m▀";
+
+    // A terminal cell is usually about twice as tall as it is wide. The upper
+    // half block stores two QR rows in one cell, keeping each module square.
+    for (let y = -QR_QUIET_ZONE; y < size + QR_QUIET_ZONE; y += 2) {
+      let line = "";
+      for (let x = -QR_QUIET_ZONE; x < size + QR_QUIET_ZONE; x += 1) {
+        const top = isDark(x, y);
+        const bottom = isDark(x, y + 1);
+
+        if (top && bottom) line += black;
+        else if (!top && !bottom) line += white;
+        else if (top) line += blackOverWhite;
+        else line += whiteOverBlack;
+      }
+      lines.push(`${line}\u001b[0m`);
+    }
+  } else {
+    // Keep the modules square in plain output by using two terminal columns
+    // for each module. This also gives a usable fallback when ANSI is disabled.
+    for (let y = -QR_QUIET_ZONE; y < size + QR_QUIET_ZONE; y += 1) {
+      let line = "";
+      for (let x = -QR_QUIET_ZONE; x < size + QR_QUIET_ZONE; x += 1) {
+        line += isDark(x, y) ? "██" : "  ";
+      }
+      lines.push(line);
+    }
+  }
+
+  return lines.join("\n");
+}
 
 function unwrapMessage(message = {}) {
   let current = message;
@@ -286,10 +331,14 @@ async function connect() {
   sock.ev.on("creds.update", saveCreds);
   sock.ev.on("connection.update", ({ connection, lastDisconnect, qr }) => {
     if (qr) {
-      console.log(
-        "\nEscaneie este QR pelo WhatsApp > Dispositivos conectados:\n",
-      );
-      qrcode.generate(qr, { small: true });
+      try {
+        console.log(
+          "\nEscaneie o QR Code abaixo pelo WhatsApp > Dispositivos conectados:\n",
+        );
+        console.log(renderQrInTerminal(qr));
+      } catch (err) {
+        console.error("Erro ao exibir o QR Code:", err.message);
+      }
     }
     if (connection === "open") {
       reconnectAttempts = 0;
