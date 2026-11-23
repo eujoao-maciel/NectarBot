@@ -1,4 +1,4 @@
-# Meu WhatsApp Bot
+# NectarBot
 
 Bot pequeno feito com Node.js e Baileys. Inclui menu, criação de figurinhas e envio de vídeos curtos no modo GIF do WhatsApp.
 
@@ -11,7 +11,7 @@ Bot pequeno feito com Node.js e Baileys. Inclui menu, criação de figurinhas e 
 ## Instalação
 
 ```bash
-cd meu-whatsapp-bot
+cd nectarbot
 npm install
 cp .env.example .env
 npm start
