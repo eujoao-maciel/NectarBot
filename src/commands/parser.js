@@ -11,10 +11,10 @@ function menuText() {
   return [
     `[ 🦇 ] *${BOT_NAME}*`,
     "",
-    `[${PREFIX}menu] ver este menu`,
-    `[${PREFIX}s]    criar figurinha de uma imagem ou vídeo`,
-    `[${PREFIX}sa]   criar figurinha de vídeo com o áudio original`,
-    `[${PREFIX}v]    transformar um vídeo em GIF`,
+    `[ ${PREFIX}menu ]   -  ver este menu`,
+    `[ ${PREFIX}s ]          -  criar figurinha`,
+    `[ ${PREFIX}sa ]        -   criar figurinha com o áudio`,
+    `[ ${PREFIX}g ]          -  criar GIF`,
     "",
     "Anexe a mídia ao comando ou responda à mensagem com a mídia.",
   ].join("\n");

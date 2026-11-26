@@ -21,7 +21,12 @@ async function handleCommand(sock, raw) {
     sock.sendMessage(chatId, { text: body }, { quoted: raw });
   if (parsed.command === "menu" || parsed.command === "ajuda")
     return reply(menuText());
-  if (parsed.command !== "s" && parsed.command !== "sa" && parsed.command !== "v") {
+  const isGifCommand = parsed.command === "g" || parsed.command === "v";
+  if (
+    parsed.command !== "s" &&
+    parsed.command !== "sa" &&
+    !isGifCommand
+  ) {
     return reply(
       `Comando não reconhecido. Envie *${PREFIX}menu* para ver as opções.`,
     );
@@ -30,16 +35,24 @@ async function handleCommand(sock, raw) {
   const source = await getMediaSource({ _raw: raw });
   if (!source) {
     if (parsed.command === "sa") {
-      return reply(`Envie um vídeo com *${PREFIX}sa* ou responda a uma mensagem com vídeo.`);
+      return reply(
+        `Envie um vídeo com *${PREFIX}sa* ou responda a uma mensagem com vídeo.`,
+      );
     }
     return reply(
       parsed.command === "s"
         ? `Envie uma imagem ou vídeo com *${PREFIX}s*, ou responda a uma mensagem com mídia.`
-        : `Envie um vídeo com *${PREFIX}v*, ou responda a uma mensagem com vídeo.`,
+        : `Envie um vídeo com *${PREFIX}${parsed.command}*, ou responda a uma mensagem com vídeo.`,
     );
   }
-  if ((parsed.command === "v" || parsed.command === "sa") && source.type !== "video") {
-    return reply(parsed.command === "sa" ? "O comando .sa precisa de um vídeo." : "O comando .v precisa de um vídeo.");
+  if (
+    (isGifCommand || parsed.command === "sa") && source.type !== "video"
+  ) {
+    return reply(
+      parsed.command === "sa"
+        ? "O comando .sa precisa de um vídeo."
+        : `O comando .${parsed.command} precisa de um vídeo.`,
+    );
   }
   if (source.buffer.length > MAX_INPUT_BYTES)
     return reply("O arquivo passa do limite de 24 MB.");
@@ -49,10 +62,10 @@ async function handleCommand(sock, raw) {
 
   await reply(
     parsed.command === "s"
-      ? "Criando sua figurinha..."
+      ? "[ 🦇 ] criando sua figurinha..."
       : parsed.command === "sa"
-        ? "Criando figurinha animada com o áudio do vídeo..."
-        : "Preparando o vídeo em formato GIF...",
+        ? "[ 🦇 ] criando figurinha áudio..."
+        : "[ 🦇 ] preparando GIF...",
   );
   await withMediaFile(source, async (inputPath, dir) => {
     if (parsed.command === "s") {

@@ -31,7 +31,7 @@ test("menu lista as funcionalidades disponíveis", options, () => {
   assert.match(menuText(), /\.menu/);
   assert.match(menuText(), /\.s/);
   assert.match(menuText(), /\.sa/);
-  assert.match(menuText(), /\.v/);
+  assert.match(menuText(), /\.g/);
 });
 
 test(
@@ -126,7 +126,16 @@ test("roteamento responde ao menu sem processar mídia", options, async () => {
     { key: { remoteJid: "chat" }, message: { conversation: ".menu" } },
   );
   assert.match(sent[0][1].text, /\.s/);
-  assert.match(sent[0][1].text, /\.v/);
+  assert.match(sent[0][1].text, /\.g/);
+});
+
+test("roteamento reconhece .g como comando para vídeo GIF", options, async () => {
+  const sent = [];
+  await handleCommand(
+    { sendMessage: async (...args) => sent.push(args) },
+    { key: { remoteJid: "chat" }, message: { conversation: ".g" } },
+  );
+  assert.match(sent[0][1].text, /Envie um vídeo com \*\.g\*/);
 });
 
 test("roteamento informa comandos desconhecidos", options, async () => {
