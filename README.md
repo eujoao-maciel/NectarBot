@@ -5,7 +5,7 @@ Bot pequeno feito com Node.js e Baileys. Inclui menu, criação de figurinhas e 
 ## Requisitos
 
 - Node.js 18 ou superior
-- `ffmpeg` instalado e disponível no `PATH`
+- `ffmpeg` e `ffprobe` instalados e disponíveis no `PATH`
 - Um número de WhatsApp para vincular por QR
 
 ## Instalação
@@ -28,7 +28,7 @@ No Windows, copie `.env.example` para `.env` manualmente. Ao iniciar, escaneie o
 
 Anexe a mídia ao comando ou responda a uma mensagem que contenha a mídia. O limite de entrada é 24 MB.
 
-O comando `.sa` exige um vídeo com áudio. A figurinha continua animada e o som é anexado como áudio Opus, limitado aos primeiros 5 segundos para acompanhar a duração usada na figurinha. A reprodução de figurinhas com áudio depende de suporte no WhatsApp de quem recebe.
+O comando `.sa` exige um vídeo com áudio. A figurinha e o áudio usam o mesmo trecho em comum, com limite de 10 segundos. O áudio é anexado como Opus. A reprodução de figurinhas com áudio depende de suporte no WhatsApp de quem recebe.
 
 O comando `.g` envia MP4 com a opção `gifPlayback` do WhatsApp. Isso permite a reprodução em loop como GIF, mantendo o envio mais leve e compatível com o WhatsApp.
 

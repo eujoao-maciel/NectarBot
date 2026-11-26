@@ -7,7 +7,11 @@ const {
   extractQuotedMessage,
 } = require("../messaging/messages");
 const { handleCommand } = require("../commands/handler");
-const { stickerVideoFilter, gifVideoFilter } = require("../media/processor");
+const {
+  stickerVideoFilter,
+  gifVideoFilter,
+  commonStickerSegment,
+} = require("../media/processor");
 const { proto } = require("@whiskeysockets/baileys");
 const {
   AUDIO_FIELD_TAG,
@@ -50,6 +54,30 @@ test("vídeo em formato GIF preenche o quadro quadrado sem barras", options, () 
   assert.match(filter, /scale=480:480:force_original_aspect_ratio=increase/);
   assert.match(filter, /crop=480:480/);
   assert.doesNotMatch(filter, /pad=/);
+});
+
+test("segmento comum mantém áudio e animação sincronizados até 10 segundos", options, () => {
+  const segment = commonStickerSegment([
+    { codec_type: "video", start_time: "0", duration: "18.2" },
+    { codec_type: "audio", start_time: "0", duration: "18.2" },
+  ], "18.2");
+  assert.deepEqual(segment, { start: 0, duration: 10 });
+  assert.match(stickerVideoFilter(segment), /trim=duration=10/);
+});
+
+test("segmento comum usa a duração menor entre áudio e vídeo", options, () => {
+  const segment = commonStickerSegment([
+    { codec_type: "video", start_time: "0", duration: "8.4" },
+    { codec_type: "audio", start_time: "0.2", duration: "7.1" },
+  ], "8.4");
+  assert.deepEqual(segment, { start: 0.2, duration: 7.1 });
+});
+
+test("figurinha com áudio exige faixas de áudio e vídeo", options, () => {
+  assert.throws(
+    () => commonStickerSegment([{ codec_type: "video", duration: "2" }], "2"),
+    /não tem uma faixa de áudio/i,
+  );
 });
 
 test("campo de áudio é embutido no protobuf apenas na figurinha registrada", options, () => {

@@ -6,6 +6,7 @@ const { parseCommand, menuText } = require("./parser");
 const {
   getMediaSource,
   findFfmpeg,
+  getCommonStickerSegment,
   convertToSticker,
   convertVideoToGifVideo,
   extractStickerAudio,
@@ -75,8 +76,9 @@ async function handleCommand(sock, raw) {
     } else if (parsed.command === "sa") {
       const stickerPath = path.join(dir, "sticker.webp");
       const audioPath = path.join(dir, "audio.ogg");
-      await convertToSticker(source, inputPath, stickerPath, ffmpeg);
-      await extractStickerAudio(inputPath, audioPath, ffmpeg);
+      const segment = await getCommonStickerSegment(inputPath);
+      await convertToSticker(source, inputPath, stickerPath, ffmpeg, segment);
+      await extractStickerAudio(inputPath, audioPath, ffmpeg, segment);
       await sendSoundSticker(sock, chatId, stickerPath, audioPath, raw);
     } else {
       const outputPath = path.join(dir, "gif.mp4");

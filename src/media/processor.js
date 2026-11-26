@@ -8,6 +8,8 @@ const {
   TEMP_DIR,
   MAX_INPUT_BYTES,
   MAX_GIF_SECONDS,
+  MAX_SOUND_STICKER_SECONDS,
+  SOUND_STICKER_FPS,
   FFMPEG_TIMEOUT_MS,
 } = require("../config");
 
@@ -15,8 +17,9 @@ const execFileAsync = promisify(execFile);
 const STICKER_SIZE = 512;
 const GIF_SIZE = 480;
 
-function stickerVideoFilter() {
-  return `fps=10,scale=${STICKER_SIZE}:${STICKER_SIZE}:force_original_aspect_ratio=increase,crop=${STICKER_SIZE}:${STICKER_SIZE}`;
+function stickerVideoFilter(segment) {
+  const trim = segment ? `setpts=PTS-STARTPTS,trim=duration=${segment.duration},` : "";
+  return `${trim}fps=${SOUND_STICKER_FPS},scale=${STICKER_SIZE}:${STICKER_SIZE}:force_original_aspect_ratio=increase,crop=${STICKER_SIZE}:${STICKER_SIZE}`;
 }
 
 function gifVideoFilter() {
@@ -59,12 +62,59 @@ function findFfmpeg() {
   return null;
 }
 
-async function convertToSticker(source, inputPath, outputPath, ffmpeg) {
-  const args = ["-hide_banner", "-loglevel", "error", "-y", "-i", inputPath];
-  if (source.type === "video") args.push("-t", "5");
+function commonStickerSegment(streams, formatDuration) {
+  const video = streams.find((stream) => stream.codec_type === "video");
+  const audio = streams.find((stream) => stream.codec_type === "audio");
+  if (!video) throw new Error("Não encontrei uma faixa de vídeo nesse arquivo.");
+  if (!audio) throw new Error("Esse vídeo não tem uma faixa de áudio para colocar na figurinha.");
+
+  const overallDuration = Number(formatDuration);
+  const streamRange = (stream) => {
+    const start = Number.isFinite(Number(stream.start_time)) ? Number(stream.start_time) : 0;
+    const parsedDuration = Number(stream.duration);
+    const duration = Number.isFinite(parsedDuration) && parsedDuration > 0
+      ? parsedDuration
+      : overallDuration;
+    if (!Number.isFinite(duration) || duration <= 0) {
+      throw new Error("Não consegui determinar a duração das faixas do vídeo.");
+    }
+    return { start, end: start + duration };
+  };
+
+  const videoRange = streamRange(video);
+  const audioRange = streamRange(audio);
+  const start = Math.max(videoRange.start, audioRange.start);
+  const end = Math.min(videoRange.end, audioRange.end, overallDuration || Infinity);
+  const overlap = Math.min(MAX_SOUND_STICKER_SECONDS, end - start);
+  const frameCount = Math.floor(overlap * SOUND_STICKER_FPS + 1e-7);
+  if (frameCount < 1) throw new Error("O trecho com áudio e vídeo em comum é curto demais.");
+
+  return { start, duration: frameCount / SOUND_STICKER_FPS };
+}
+
+async function getCommonStickerSegment(inputPath, ffprobe = process.env.FFPROBE_PATH || "ffprobe") {
+  try {
+    const { stdout } = await execFileAsync(ffprobe, [
+      "-v", "error", "-show_entries", "format=duration:stream=codec_type,duration,start_time",
+      "-of", "json", inputPath,
+    ], { timeout: 5000, maxBuffer: 1024 * 1024 });
+    const probe = JSON.parse(stdout);
+    return commonStickerSegment(probe.streams || [], probe.format?.duration);
+  } catch (error) {
+    if (error instanceof SyntaxError) throw new Error("Não consegui ler as informações de duração do vídeo.");
+    if (error.code === "ENOENT") throw new Error("Não encontrei o ffprobe. Instale o pacote completo do FFmpeg.");
+    throw error;
+  }
+}
+
+async function convertToSticker(source, inputPath, outputPath, ffmpeg, segment) {
+  const args = ["-hide_banner", "-loglevel", "error", "-y"];
+  if (segment) args.push("-ss", String(segment.start));
+  args.push("-i", inputPath);
+  if (source.type === "video") args.push("-t", String(segment?.duration || 5));
   args.push(
     "-vf",
-    stickerVideoFilter(),
+    stickerVideoFilter(segment),
     "-vcodec",
     "libwebp",
     "-lossless",
@@ -111,11 +161,12 @@ async function convertVideoToGifVideo(inputPath, outputPath, ffmpeg) {
   );
 }
 
-async function extractStickerAudio(inputPath, outputPath, ffmpeg) {
+async function extractStickerAudio(inputPath, outputPath, ffmpeg, segment) {
   try {
     await execFileAsync(ffmpeg, [
-      "-hide_banner", "-loglevel", "error", "-y", "-i", inputPath,
-      "-map", "0:a:0", "-vn", "-t", "5", "-ac", "1", "-ar", "48000",
+      "-hide_banner", "-loglevel", "error", "-y", "-ss", String(segment.start), "-i", inputPath,
+      "-map", "0:a:0", "-vn", "-t", String(segment.duration),
+      "-af", `atrim=duration=${segment.duration},asetpts=PTS-STARTPTS`, "-ac", "1", "-ar", "48000",
       "-c:a", "libopus", "-b:a", "32k", "-application", "voip", "-f", "ogg", outputPath,
     ], { timeout: FFMPEG_TIMEOUT_MS, maxBuffer: 4 * 1024 * 1024 });
   } catch (error) {
@@ -147,9 +198,11 @@ module.exports = {
   getMediaSource,
   findFfmpeg,
   convertToSticker,
+  commonStickerSegment,
+  getCommonStickerSegment,
+  stickerVideoFilter,
   convertVideoToGifVideo,
   extractStickerAudio,
   withMediaFile,
-  stickerVideoFilter,
   gifVideoFilter,
 };
