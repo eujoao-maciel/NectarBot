@@ -12,6 +12,16 @@ const {
 } = require("../config");
 
 const execFileAsync = promisify(execFile);
+const STICKER_SIZE = 512;
+const GIF_SIZE = 480;
+
+function stickerVideoFilter() {
+  return `fps=10,scale=${STICKER_SIZE}:${STICKER_SIZE}:force_original_aspect_ratio=increase,crop=${STICKER_SIZE}:${STICKER_SIZE}`;
+}
+
+function gifVideoFilter() {
+  return `fps=12,scale=${GIF_SIZE}:${GIF_SIZE}:force_original_aspect_ratio=increase:flags=lanczos,crop=${GIF_SIZE}:${GIF_SIZE}`;
+}
 
 async function getMediaSource(message) {
   for (const raw of [message._raw, extractQuotedMessage(message._raw)]) {
@@ -54,7 +64,7 @@ async function convertToSticker(source, inputPath, outputPath, ffmpeg) {
   if (source.type === "video") args.push("-t", "5");
   args.push(
     "-vf",
-    "fps=10,scale=512:512:force_original_aspect_ratio=decrease,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000",
+    stickerVideoFilter(),
     "-vcodec",
     "libwebp",
     "-lossless",
@@ -87,7 +97,7 @@ async function convertVideoToGifVideo(inputPath, outputPath, ffmpeg) {
       "-t",
       String(MAX_GIF_SECONDS),
       "-vf",
-      "fps=12,scale=480:-2:flags=lanczos",
+      gifVideoFilter(),
       "-an",
       "-c:v",
       "libx264",
@@ -124,4 +134,6 @@ module.exports = {
   convertToSticker,
   convertVideoToGifVideo,
   withMediaFile,
+  stickerVideoFilter,
+  gifVideoFilter,
 };

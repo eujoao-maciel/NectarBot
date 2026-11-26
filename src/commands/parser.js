@@ -12,8 +12,8 @@ function menuText() {
     `[ 🦇 ] *${BOT_NAME}*`,
     "",
     `${PREFIX}menu — ver este menu`,
-    `${PREFIX}s — criar figurinha de uma imagem ou vídeo`,
-    `${PREFIX}v — transformar um vídeo em GIF`,
+    `${PREFIX}s    — criar figurinha de uma imagem ou vídeo`,
+    `${PREFIX}v    — transformar um vídeo em GIF`,
     "",
     "Anexe a mídia ao comando ou responda à mensagem com a mídia.",
   ].join("\n");

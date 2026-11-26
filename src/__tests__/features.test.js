@@ -7,6 +7,7 @@ const {
   extractQuotedMessage,
 } = require("../messaging/messages");
 const { handleCommand } = require("../commands/handler");
+const { stickerVideoFilter, gifVideoFilter } = require("../media/processor");
 
 const options = { skip: process.env.TESTS_ENABLED === "false" };
 
@@ -23,6 +24,24 @@ test("menu lista as funcionalidades disponíveis", options, () => {
   assert.match(menuText(), /\.menu/);
   assert.match(menuText(), /\.s/);
   assert.match(menuText(), /\.v/);
+});
+
+test(
+  "figurinha preenche o quadro quadrado cortando o excesso sem distorcer",
+  options,
+  () => {
+    const filter = stickerVideoFilter();
+    assert.match(filter, /scale=512:512:force_original_aspect_ratio=increase/);
+    assert.match(filter, /crop=512:512/);
+    assert.doesNotMatch(filter, /pad=/);
+  },
+);
+
+test("vídeo em formato GIF preenche o quadro quadrado sem barras", options, () => {
+  const filter = gifVideoFilter();
+  assert.match(filter, /scale=480:480:force_original_aspect_ratio=increase/);
+  assert.match(filter, /crop=480:480/);
+  assert.doesNotMatch(filter, /pad=/);
 });
 
 test("mensagens extraem texto de conversa e legenda", options, () => {
