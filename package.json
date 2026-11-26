@@ -5,7 +5,9 @@
   "description": "Bot simples de WhatsApp com menu, figurinhas e vídeos em formato GIF.",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "node src/__tests__/features.test.js",
+    "test:off": "TESTS_ENABLED=false node src/__tests__/features.test.js"
   },
   "engines": {
     "node": ">=18"

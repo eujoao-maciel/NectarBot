@@ -29,6 +29,12 @@ Anexe a mídia ao comando ou responda a uma mensagem que contenha a mídia. O li
 
 O comando `.v` envia MP4 com a opção `gifPlayback` do WhatsApp. Isso permite a reprodução em loop como GIF, mantendo o envio mais leve e compatível com o WhatsApp.
 
+## Desenvolvimento e testes
+
+O código da aplicação fica em `src/`: `src/index.js` inicializa o servidor, `src/bot.js` gerencia a conexão com o WhatsApp, `src/commands/` contém o parser e roteamento dos comandos, `src/media/` processa mídia e `src/messaging/` trata mensagens e QR Code. O `index.js` na raiz mantém o comando `npm start` compatível.
+
+Execute os testes com `npm test`. Para desativar a suíte, use `npm run test:off` ou defina `TESTS_ENABLED=false` ao executar `node --test`.
+
 ## Configuração
 
 Edite `.env`:
