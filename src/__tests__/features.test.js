@@ -8,6 +8,13 @@ const {
 } = require("../messaging/messages");
 const { handleCommand } = require("../commands/handler");
 const { stickerVideoFilter, gifVideoFilter } = require("../media/processor");
+const { proto } = require("@whiskeysockets/baileys");
+const {
+  AUDIO_FIELD_TAG,
+  attachAudio,
+  detachAudio,
+  installStickerAudioPatch,
+} = require("../messaging/sticker-audio");
 
 const options = { skip: process.env.TESTS_ENABLED === "false" };
 
@@ -23,6 +30,7 @@ test("parser reconhece comandos, argumentos e prefixo", options, () => {
 test("menu lista as funcionalidades disponíveis", options, () => {
   assert.match(menuText(), /\.menu/);
   assert.match(menuText(), /\.s/);
+  assert.match(menuText(), /\.sa/);
   assert.match(menuText(), /\.v/);
 });
 
@@ -42,6 +50,29 @@ test("vídeo em formato GIF preenche o quadro quadrado sem barras", options, () 
   assert.match(filter, /scale=480:480:force_original_aspect_ratio=increase/);
   assert.match(filter, /crop=480:480/);
   assert.doesNotMatch(filter, /pad=/);
+});
+
+test("campo de áudio é embutido no protobuf apenas na figurinha registrada", options, () => {
+  installStickerAudioPatch();
+  const stickerHash = Buffer.from("sticker-hash");
+  const audioBytes = proto.Message.AudioMessage.encode({
+    mimetype: "audio/ogg; codecs=opus",
+    ptt: true,
+  }).finish();
+  const marker = Buffer.from([0xd2, 0x01]);
+  const sticker = proto.Message.StickerMessage.create({ fileSha256: stickerHash });
+  const stickerPayload = (encodedMessage) => {
+    const length = encodedMessage[2];
+    return encodedMessage.subarray(3, 3 + length);
+  };
+
+  attachAudio(stickerHash, audioBytes);
+  const encodedWithAudio = proto.Message.encode({ stickerMessage: sticker }).finish();
+  assert.notEqual(stickerPayload(encodedWithAudio).indexOf(marker), -1);
+
+  detachAudio(stickerHash);
+  const encodedWithoutAudio = proto.Message.encode({ stickerMessage: sticker }).finish();
+  assert.equal(stickerPayload(encodedWithoutAudio).indexOf(marker), -1);
 });
 
 test("mensagens extraem texto de conversa e legenda", options, () => {

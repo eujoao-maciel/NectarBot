@@ -111,6 +111,21 @@ async function convertVideoToGifVideo(inputPath, outputPath, ffmpeg) {
   );
 }
 
+async function extractStickerAudio(inputPath, outputPath, ffmpeg) {
+  try {
+    await execFileAsync(ffmpeg, [
+      "-hide_banner", "-loglevel", "error", "-y", "-i", inputPath,
+      "-map", "0:a:0", "-vn", "-t", "5", "-ac", "1", "-ar", "48000",
+      "-c:a", "libopus", "-b:a", "32k", "-application", "voip", "-f", "ogg", outputPath,
+    ], { timeout: FFMPEG_TIMEOUT_MS, maxBuffer: 4 * 1024 * 1024 });
+  } catch (error) {
+    if (/matches no streams|does not contain any stream|Stream specifier .* matches no streams/i.test(error.stderr || "")) {
+      throw new Error("Esse vídeo não tem uma faixa de áudio para colocar na figurinha.");
+    }
+    throw error;
+  }
+}
+
 async function withMediaFile(source, action) {
   fs.mkdirSync(TEMP_DIR, { recursive: true });
   const dir = fs.mkdtempSync(path.join(TEMP_DIR, "job-"));
@@ -133,6 +148,7 @@ module.exports = {
   findFfmpeg,
   convertToSticker,
   convertVideoToGifVideo,
+  extractStickerAudio,
   withMediaFile,
   stickerVideoFilter,
   gifVideoFilter,

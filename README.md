@@ -23,9 +23,12 @@ No Windows, copie `.env.example` para `.env` manualmente. Ao iniciar, escaneie o
 
 - `.menu` — mostra os comandos
 - `.s` — cria figurinha a partir de imagem ou vídeo
+- `.sa` — cria figurinha animada com o áudio original do vídeo
 - `.v` — converte os primeiros 8 segundos de um vídeo para um MP4 leve que o WhatsApp exibe como GIF
 
 Anexe a mídia ao comando ou responda a uma mensagem que contenha a mídia. O limite de entrada é 24 MB.
+
+O comando `.sa` exige um vídeo com áudio. A figurinha continua animada e o som é anexado como áudio Opus, limitado aos primeiros 5 segundos para acompanhar a duração usada na figurinha. A reprodução de figurinhas com áudio depende de suporte no WhatsApp de quem recebe.
 
 O comando `.v` envia MP4 com a opção `gifPlayback` do WhatsApp. Isso permite a reprodução em loop como GIF, mantendo o envio mais leve e compatível com o WhatsApp.
 
